@@ -5,6 +5,28 @@ use std::io::BufRead;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::str::FromStr;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// The git branch to build
+    branch: String,
+
+    /// Optional: Build only a specific docker image name
+    image: Option<String>,
+
+    /// Optional: Build only for a specific PostgreSQL major version
+    pg_version: Option<u16>,
+
+    /// Run builds sequentially instead of in parallel to save disk space
+    #[arg(long, default_value_t = false)]
+    sequential: bool,
+
+    /// Build in debug mode
+    #[arg(long, default_value_t = false)]
+    debug: bool,
+}
 
 macro_rules! exit_with_error {
     () => ({ exit_with_error!("explicit panic") });
@@ -59,19 +81,25 @@ fn do_exit() {
 }
 
 fn main() -> Result<(), std::io::Error> {
+    let args = Args::parse();
     let timer_start = std::time::Instant::now();
     ctrlc::set_handler(do_exit).expect("unable to set ^C handler");
-    let max_cpus = std::env::var("CPUS").unwrap_or(num_cpus::get().to_string());
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(max_cpus.parse().expect("`CPUS` envvar is invalid"))
-        .build_global()
-        .ok();
 
-    println!(
-        "{} `num_threads` to {}",
-        "     Setting".bold().green(),
-        max_cpus
-    );
+    if !args.sequential {
+        let max_cpus = std::env::var("CPUS").unwrap_or(num_cpus::get().to_string());
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(max_cpus.parse().expect("`CPUS` envvar is invalid"))
+            .build_global()
+            .ok();
+        println!(
+            "{} `num_threads` to {}",
+            "     Setting".bold().green(),
+            max_cpus
+        );
+    } else {
+        println!("{}", "   Running in sequential mode".bold().yellow());
+    }
+
     let pgrx_version = determine_pgrx_version()?;
     println!(
         "{} pgrx version to {}",
@@ -90,21 +118,9 @@ fn main() -> Result<(), std::io::Error> {
     std::fs::create_dir_all(&builddir).expect("failed to create builddir");
     std::fs::create_dir_all(&repodir).expect("failed to create repodir");
 
-    let args = std::env::args().collect::<Vec<_>>();
-    let branch = args.get(1).unwrap_or_else(|| {
-        exit_with_error!(
-            "usage:  cargo run <branch> [<docker-image-name> <pg major version>] [--debug]"
-        )
-    });
-    let user_image = args.get(2);
-    let user_pgver: Option<u16> = match args.get(3) {
-        Some(pgver) => Some(pgver.parse().expect("pgver is not a valid number")),
-        None => None,
-    };
-    let debug = args.last().cloned().unwrap_or_else(|| "false".into()) == "--debug";
     let dockerfiles = find_dockerfiles()?;
 
-    handle_result!(git_clone(&branch, &repodir), "failed to clone ZomboDB repo");
+    handle_result!(git_clone(&args.branch, &repodir), "failed to clone ZomboDB repo");
 
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_secs(60));
@@ -114,108 +130,40 @@ fn main() -> Result<(), std::io::Error> {
         );
     });
 
-    dockerfiles
-        .par_iter()
-        .filter(|(image, _)| user_image.is_none() || user_image.as_ref().unwrap() == &image)
-        .for_each(|(image, file)| {
-            let dockerfile = handle_result!(
-                parse_dockerfile(&file),
-                "failed to parse: {}",
-                file.display().to_string().bold().yellow()
-            );
-            let args = parse_dockerfile_arg_names(&dockerfile);
-
-            if args.contains("PGVER") {
-                // gotta build a separate image for each pg version
-                PGVERS
-                    .par_iter()
-                    .filter(|pgver| {
-                        user_pgver.is_none() || **pgver == *user_pgver.as_ref().unwrap()
-                    })
-                    .for_each(|pgver| {
-                        let start = std::time::Instant::now();
-                        let image = handle_result!(
-                            docker_build(image, Some(*pgver)),
-                            "{}-pg{}:  failed to run `docker build`",
-                            image.bold().red(),
-                            pgver.to_string().bold().red()
-                        );
-                        println!(
-                            "{} {} in {}",
-                            "       Built".bold().cyan(),
-                            image,
-                            durationfmt::to_string(start.elapsed())
-                        );
-
-                        let start = std::time::Instant::now();
-                        handle_result!(
-                            docker_run(
-                                &image,
-                                *pgver,
-                                &repodir,
-                                &builddir,
-                                &artifactdir,
-                                &pgrx_version,
-                                debug
-                            ),
-                            "Failed to compile {} for {}",
-                            image,
-                            pgver
-                        );
-                        println!(
-                            "{} {} for pg{} in {}",
-                            "    Packaged".bold().blue(),
-                            image,
-                            pgver,
-                            durationfmt::to_string(start.elapsed())
-                        );
-                    });
-            } else {
-                // can build it just once
-                let start = std::time::Instant::now();
-                let image = handle_result!(
-                    docker_build(image, None),
-                    "{}:  failed to run `docker build`",
-                    image.bold().red()
-                );
-                println!(
-                    "{} {} in {}",
-                    "       Built".bold().cyan(),
+    if args.sequential {
+        dockerfiles
+            .iter()
+            .filter(|(image, _)| args.image.is_none() || *args.image.as_ref().unwrap() == *image)
+            .for_each(|(image, file)| {
+                run_build_for_image(
                     image,
-                    durationfmt::to_string(start.elapsed())
+                    file,
+                    &args,
+                    &repodir,
+                    &builddir,
+                    &artifactdir,
+                    &pgrx_version,
+                    false,
                 );
+            });
+    } else {
+        dockerfiles
+            .par_iter()
+            .filter(|(image, _)| args.image.is_none() || *args.image.as_ref().unwrap() == *image)
+            .for_each(|(image, file)| {
+                run_build_for_image(
+                    image,
+                    file,
+                    &args,
+                    &repodir,
+                    &builddir,
+                    &artifactdir,
+                    &pgrx_version,
+                    true,
+                );
+            });
+    }
 
-                PGVERS
-                    .par_iter()
-                    .filter(|pgver| {
-                        user_pgver.is_none() || **pgver == *user_pgver.as_ref().unwrap()
-                    })
-                    .for_each(|pgver| {
-                        let start = std::time::Instant::now();
-                        handle_result!(
-                            docker_run(
-                                &image,
-                                *pgver,
-                                &repodir,
-                                &builddir,
-                                &artifactdir,
-                                &pgrx_version,
-                                debug
-                            ),
-                            "Failed to compile {} for {}",
-                            image,
-                            pgver
-                        );
-                        println!(
-                            "{} {} for pg{} in {}",
-                            "    Packaged".bold().blue(),
-                            image,
-                            pgver,
-                            durationfmt::to_string(start.elapsed())
-                        );
-                    });
-            }
-        });
     println!(
         "{} in {}",
         "    Finished".bold().green(),
@@ -224,6 +172,126 @@ fn main() -> Result<(), std::io::Error> {
 
     Ok(())
 }
+
+fn run_build_for_image(
+    image: &str,
+    file: &PathBuf,
+    args: &Args,
+    repodir: &PathBuf,
+    builddir: &PathBuf,
+    artifactdir: &PathBuf,
+    pgrx_version: &str,
+    is_parallel: bool,
+) {
+    let dockerfile = handle_result!(
+        parse_dockerfile(&file),
+        "failed to parse: {}",
+        file.display().to_string().bold().yellow()
+    );
+    let docker_args = parse_dockerfile_arg_names(&dockerfile);
+
+    if docker_args.contains("PGVER") {
+        let pg_versions_iter = PGVERS.iter().filter(|pgver| {
+            args.pg_version.is_none() || **pgver == *args.pg_version.as_ref().unwrap()
+        });
+
+        if is_parallel {
+            pg_versions_iter.par_bridge().for_each(|pgver| {
+                build_and_package(image, Some(*pgver), args, repodir, builddir, artifactdir, pgrx_version);
+            });
+        } else {
+            pg_versions_iter.for_each(|pgver| {
+                build_and_package(image, Some(*pgver), args, repodir, builddir, artifactdir, pgrx_version);
+            });
+        }
+    } else {
+        let start = std::time::Instant::now();
+        let built_image = handle_result!(
+            docker_build(image, None),
+            "{}: failed to run `docker build`",
+            image.bold().red()
+        );
+        println!(
+            "{} {} in {}",
+            "       Built".bold().cyan(),
+            built_image,
+            durationfmt::to_string(start.elapsed())
+        );
+
+        let pg_versions_iter = PGVERS.iter().filter(|pgver| {
+            args.pg_version.is_none() || **pgver == *args.pg_version.as_ref().unwrap()
+        });
+
+        if is_parallel {
+            pg_versions_iter.par_bridge().for_each(|pgver| {
+                package(&built_image, *pgver, args, repodir, builddir, artifactdir, pgrx_version);
+            });
+        } else {
+            pg_versions_iter.for_each(|pgver| {
+                package(&built_image, *pgver, args, repodir, builddir, artifactdir, pgrx_version);
+            });
+        }
+    }
+}
+
+fn build_and_package(
+    image: &str,
+    pgver: Option<u16>,
+    args: &Args,
+    repodir: &PathBuf,
+    builddir: &PathBuf,
+    artifactdir: &PathBuf,
+    pgrx_version: &str,
+) {
+    let start = std::time::Instant::now();
+    let built_image = handle_result!(
+        docker_build(image, pgver),
+        "{}-pg{}: failed to run `docker build`",
+        image.bold().red(),
+        pgver.unwrap_or_default().to_string().bold().red()
+    );
+    println!(
+        "{} {} in {}",
+        "       Built".bold().cyan(),
+        built_image,
+        durationfmt::to_string(start.elapsed())
+    );
+    package(&built_image, pgver.unwrap(), args, repodir, builddir, artifactdir, pgrx_version);
+}
+
+fn package(
+    image: &str,
+    pgver: u16,
+    args: &Args,
+    repodir: &PathBuf,
+    builddir: &PathBuf,
+    artifactdir: &PathBuf,
+    pgrx_version: &str,
+) {
+    let start = std::time::Instant::now();
+    handle_result!(
+        docker_run(
+            image,
+            pgver,
+            repodir,
+            builddir,
+            artifactdir,
+            pgrx_version,
+            args.debug
+        ),
+        "Failed to compile {} for {}",
+        image,
+        pgver
+    );
+    println!(
+        "{} {} for pg{} in {}",
+        "    Packaged".bold().blue(),
+        image,
+        pgver,
+        durationfmt::to_string(start.elapsed())
+    );
+}
+
 
 fn remove_dir(dir: &PathBuf) {
     if dir.exists() {
