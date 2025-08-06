@@ -28,8 +28,8 @@ multiple data-access code paths -- ZomboDB does it all for you.
 
 ## Quick Links
 
-- [Installation from Binaries](BINARY-INSTALLATION.md) ([sponsors only](https://github.com/sponsors/eeeebbbbrrrr))
-- [Installation from Source](SOURCE-INSTALLATION.md) (everyone)
+- [Installation from Binaries](BINARY-INSTALLATION.md)
+- [Installation from Source](SOURCE-INSTALLATION.md)
 - [Getting Started Tutorial](TUTORIAL.md)
 - [Important Things to Know](THINGS-TO-KNOW.md)
 - [Creating Indexes](CREATE-INDEX.md)
@@ -82,17 +82,6 @@ These limitations may be addressed in future versions of ZomboDB.
 |---------------|------------------------------------|
 | Postgres      | 12.x, 13.x, 14.x, 15.x, 16.x, 17.x |
 | Elasticsearch | >=7.10                             |
-
-## Sponsorship and Downloads
-
-Please see https://github.com/sponsors/eeeebbbbrrrr for sponsorship details. Your sponsorship at any tier is greatly
-appreciated and helps keep ZomboDB moving forward.
-
-Note that ZomboDB is only available in binary form for certain sponsor tiers.
-
-When you become a sponsor at a tier that provides binary downloads, please request a download key from
-https://www.zombodb.com/services/. Please do the same if you sponsor a tier that provides access to ZomboDB's private
-Discord server.
 
 ## Quick Overview
 

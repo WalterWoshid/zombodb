@@ -1,7 +1,6 @@
 # ZomboDB Source Installation Instructions
 
-If you're a [sponsor](https://github.com/sponsors/eeeebbbbrrrr) you might want to also read the
-\[BINARY-INSTALLATION.md\] documentation.
+See \[BINARY-INSTALLATION.md\] documentation for instructions on how to install ZomboDB from binary artifacts.
 
 ## Prerequisites
 

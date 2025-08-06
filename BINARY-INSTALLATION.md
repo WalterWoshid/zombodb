@@ -1,8 +1,7 @@
 # ZomboDB Installation Instructions
 
-ZomboDB is a 100% native Postgres extension. Additionally, ZomboDB is available as binary `.deb` and `.rpm` packages to
-[sponsors](https://github.com/sponsors/eeeebbbbrrrr) for popular Linux distributions. As such, installation is fairly
-straightforward.
+ZomboDB is a 100% native Postgres extension. Additionally, ZomboDB is available as binary `.deb` and `.rpm` packages for
+popular Linux distributions. As such, installation is fairly straightforward.
 
 If you instead prefer to install ZomboDB from source, please read the \[SOURCE-INSTALLATION.md\] documentation.
 
