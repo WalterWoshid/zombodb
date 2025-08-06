@@ -10,6 +10,10 @@
 , postgresql_11
 , postgresql_12
 , postgresql_13
+, postgresql_14
+, postgresql_15
+, postgresql_16
+, postgresql_17
 , pkg-config
 , openssl
 , libiconv
@@ -26,6 +30,10 @@ let
     else if (pgrxPostgresVersion == 11) then postgresql_11
     else if (pgrxPostgresVersion == 12) then postgresql_12
     else if (pgrxPostgresVersion == 13) then postgresql_13
+    else if (pgrxPostgresVersion == 14) then postgresql_14
+    else if (pgrxPostgresVersion == 15) then postgresql_15
+    else if (pgrxPostgresVersion == 16) then postgresql_16
+    else if (pgrxPostgresVersion == 17) then postgresql_17
     else null;
   pgrxPostgresVersionString = builtins.toString pgrxPostgresVersion;
   cargoToml = (builtins.fromTOML (builtins.readFile ./Cargo.toml));
@@ -37,7 +45,7 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
 
   src = ./.;
 
-  inputsFrom = [ postgresql_10 postgresql_11 postgresql_12 postgresql_13 cargo-pgrx ];
+  inputsFrom = [ postgresql_10 postgresql_11 postgresql_12 postgresql_13 postgresql_14 postgresql_15 postgresql_16 postgresql_17 cargo-pgrx ];
 
   LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
   buildInputs = [
@@ -52,7 +60,7 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
   doCheck = true;
 
   preConfigure = ''
-    mkdir -p $out/.pgrx/{10,11,12,13}
+    mkdir -p $out/.pgrx/{10,11,12,13,14,15,16,17}
     export PGRX_HOME=$out/.pgrx
 
     cp -r -L ${postgresql_10}/. $out/.pgrx/10/
@@ -67,12 +75,26 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
     cp -r -L ${postgresql_13}/. $out/.pgrx/13/
     chmod -R ugo+w $out/.pgrx/13
     cp -r -L ${postgresql_13.lib}/lib/. $out/.pgrx/13/lib/
+    cp -r -L ${postgresql_14}/. $out/.pgrx/14/
+    chmod -R ugo+w $out/.pgrx/14
+    cp -r -L ${postgresql_14.lib}/lib/. $out/.pgrx/14/lib/
+    cp -r -L ${postgresql_15}/. $out/.pgrx/15/
+    chmod -R ugo+w $out/.pgrx/15
+    cp -r -L ${postgresql_15.lib}/lib/. $out/.pgrx/15/lib/
+    cp -r -L ${postgresql_16}/. $out/.pgrx/16/
+    chmod -R ugo+w $out/.pgrx/16
+    cp -r -L ${postgresql_16.lib}/lib/. $out/.pgrx/16/lib/
+    cp -r -L ${postgresql_17}/. $out/.pgrx/17/
+    chmod -R ugo+w $out/.pgrx/17
+    cp -r -L ${postgresql_17.lib}/lib/. $out/.pgrx/17/lib/
 
     ${cargo-pgrx}/bin/cargo-pgrx pgrx init \
       --pg12 $out/.pgrx/12/bin/pg_config \
       --pg13 $out/.pgrx/13/bin/pg_config
       --pg14 $out/.pgrx/14/bin/pg_config
       --pg15 $out/.pgrx/15/bin/pg_config
+      --pg16 $out/.pgrx/16/bin/pg_config
+      --pg17 $out/.pgrx/17/bin/pg_config
 
     # This is primarily for Mac or other Nix systems that don't use the nixbld user.
     export USER=$(whoami)

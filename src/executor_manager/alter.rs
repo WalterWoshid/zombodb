@@ -47,8 +47,14 @@ pub fn alter_indices(prev_options: Option<Vec<ZDBIndexOptions>>) {
             };
             (option, ZDBIndexOptions::from_relation(&index), index)
         }) {
+            #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16"))]
+            let session_auth_is_superuser = unsafe { pg_sys::session_auth_is_superuser };
+
+            #[cfg(feature = "pg17")]
+            let session_auth_is_superuser = unsafe { pg_sys::GetSessionUserIsSuperuser() };
+
             if old_options.url() != new_options.url()
-                && !unsafe { pg_sys::session_auth_is_superuser }
+                && !session_auth_is_superuser
             {
                 panic!("You must be a superuser to change the 'url' parameter")
             }

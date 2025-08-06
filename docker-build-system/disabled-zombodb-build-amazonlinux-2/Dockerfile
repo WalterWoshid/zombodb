@@ -49,6 +49,16 @@ name=PostgreSQL 15 for RHEL/CentOS 7 - x86_64\n\
 baseurl=https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-7-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
+[pgdg16]\n\
+name=PostgreSQL 16 for RHEL/CentOS 7 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-7-x86_64\n\
+enabled=1\n\
+gpgcheck=0\n\
+[pgdg17]\n\
+name=PostgreSQL 17 for RHEL/CentOS 7 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-7-x86_64\n\
+enabled=1\n\
+gpgcheck=0\n\
 ' >> /etc/yum.repos.d/pgdg.repo
 
 
@@ -57,6 +67,8 @@ RUN yum install -y llvm-toolset-7-clang
 RUN yum install -y postgresql13 postgresql13-server postgresql13-devel
 RUN yum install -y postgresql14 postgresql14-server postgresql14-devel
 RUN yum install -y postgresql15 postgresql15-server postgresql15-devel
+RUN yum install -y postgresql16 postgresql16-server postgresql16-devel
+RUN yum install -y postgresql17 postgresql17-server postgresql17-devel
 
 USER ${UID}:${GID}
 WORKDIR /home/${USER}
@@ -78,4 +90,6 @@ RUN cargo install cargo-pgrx --version 0.13.1 --locked
 RUN cargo pgrx init \
 	--pg13=/usr/pgsql-13/bin/pg_config \
 	--pg14=/usr/pgsql-14/bin/pg_config \
-	--pg15=/usr/pgsql-15/bin/pg_config
+	--pg15=/usr/pgsql-15/bin/pg_config \
+    --pg16=/usr/pgsql-16/bin/pg_config \
+    --pg17=/usr/pgsql-17/bin/pg_config
