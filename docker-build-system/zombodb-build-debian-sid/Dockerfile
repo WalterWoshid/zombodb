@@ -28,7 +28,9 @@ RUN useradd -m ${USER} --uid=${UID}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y wget gnupg
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ sid-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN wget --quiet -O /etc/apt/keyrings/pgdg.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+RUN echo "deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt/ sid-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 
 RUN apt-get update && apt-get install -y git curl
 RUN apt-get update && apt-get install -y gcc make build-essential libz-dev zlib1g-dev strace libssl-dev pkg-config
