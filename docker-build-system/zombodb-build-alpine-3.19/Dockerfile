@@ -32,7 +32,6 @@ RUN apk add --no-cache \
 	curl \
 	bash \
 	ruby-dev \
-	ruby-etc \
 	musl-dev \
 	make \
 	gcc \
