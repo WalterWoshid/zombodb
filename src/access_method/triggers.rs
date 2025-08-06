@@ -138,7 +138,7 @@ unsafe fn maybe_find_hot_root(
 ) {
     if pg_sys::HeapTupleHeaderIsHeapOnly((*trigdata.tg_trigtuple).t_data) {
         let mut buf = 0 as pg_sys::Buffer;
-        #[cfg(any(feature = "pg12", feature = "pg13", feature = "pg14"))]
+        #[cfg(any(feature = "pg13", feature = "pg14"))]
         let found_tuple = pg_sys::heap_fetch(
             trigdata.tg_relation,
             pg_sys::GetTransactionSnapshot(),
@@ -256,20 +256,6 @@ fn create_trigger(
     tgstmt.timing = pg_sys::TRIGGER_TYPE_BEFORE as i16;
     tgstmt.events = events as i16;
 
-    #[cfg(feature = "pg10")]
-    let object_address = unsafe {
-        pg_sys::CreateTrigger(
-            tgstmt.into_pg(),
-            std::ptr::null_mut(),
-            index_relation.heap_relation().unwrap().oid(),
-            pg_sys::InvalidOid,
-            pg_sys::InvalidOid,
-            pg_sys::InvalidOid,
-            true,
-        )
-    };
-
-    #[cfg(not(feature = "pg10"))]
     let object_address = unsafe {
         pg_sys::CreateTrigger(
             tgstmt.into_pg(),

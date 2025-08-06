@@ -667,10 +667,6 @@ fn field_mapping(index_relation: PgRelation, field: &str) -> Option<JsonB> {
     })
 }
 
-#[cfg(feature = "pg12")]
-static mut RELOPT_KIND_ZDB: pg_sys::relopt_kind::Type = 0;
-
-#[cfg(not(feature = "pg12"))]
 static mut RELOPT_KIND_ZDB: pg_sys::relopt_kind::Type = pg_sys::relopt_kind::RELOPT_KIND_LOCAL;
 
 #[pg_guard]
@@ -911,7 +907,6 @@ pub unsafe extern "C" fn amoptions(
     build_relopts(reloptions, validate, tab)
 }
 
-#[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
 unsafe fn build_relopts(
     reloptions: pg_sys::Datum,
     validate: bool,
@@ -930,41 +925,6 @@ unsafe fn build_relopts(
     rdopts as *mut pg_sys::bytea
 }
 
-#[cfg(any(feature = "pg12"))]
-unsafe fn build_relopts(
-    reloptions: pg_sys::Datum,
-    validate: bool,
-    tab: [pg_sys::relopt_parse_elt; NUM_REL_OPTS],
-) -> *mut pg_sys::bytea {
-    let mut noptions = 0;
-    let options = pg_sys::parseRelOptions(reloptions, validate, RELOPT_KIND_ZDB, &mut noptions);
-    if noptions == 0 {
-        return std::ptr::null_mut();
-    }
-
-    for relopt in std::slice::from_raw_parts_mut(options, noptions as usize) {
-        relopt.gen.as_mut().unwrap().lockmode = pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE;
-    }
-
-    let rdopts = pg_sys::allocateReloptStruct(
-        std::mem::size_of::<ZDBIndexOptionsInternal>(),
-        options,
-        noptions,
-    );
-    pg_sys::fillRelOptions(
-        rdopts,
-        std::mem::size_of::<ZDBIndexOptionsInternal>(),
-        options,
-        noptions,
-        validate,
-        tab.as_ptr(),
-        tab.len() as i32,
-    );
-    pg_sys::pfree(options as void_mut_ptr);
-
-    rdopts as *mut pg_sys::bytea
-}
-
 pub unsafe fn init() {
     RELOPT_KIND_ZDB = pg_sys::add_reloption_kind();
 
@@ -974,10 +934,7 @@ pub unsafe fn init() {
         "Server URL and port".as_pg_cstr(),
         "default".as_pg_cstr(),
         Some(validate_url),
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -985,10 +942,7 @@ pub unsafe fn init() {
         "What Elasticsearch index type name should ZDB use?  Default is 'doc'".as_pg_cstr(),
         "doc".as_pg_cstr(),
         None,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -996,8 +950,7 @@ pub unsafe fn init() {
         "Frequency in which Elasticsearch indexes are refreshed.  Related to ES' index.refresh_interval setting".as_pg_cstr(),
         DEFAULT_REFRESH_INTERVAL.as_pg_cstr(),
         None,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-            { pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1006,10 +959,7 @@ pub unsafe fn init() {
         DEFAULT_SHARDS,
         1,
         32768,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1018,10 +968,7 @@ pub unsafe fn init() {
         ZDB_DEFAULT_REPLICAS.get(),
         0,
         32768,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1030,10 +977,7 @@ pub unsafe fn init() {
         *DEFAULT_BULK_CONCURRENCY,
         1,
         num_cpus::get() as i32,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1042,10 +986,7 @@ pub unsafe fn init() {
         DEFAULT_BATCH_SIZE,
         1,
         (i32::MAX / 2) - 1,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1054,10 +995,7 @@ pub unsafe fn init() {
         DEFAULT_COMPRESSION_LEVEL,
         0,
         9,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1067,10 +1005,7 @@ pub unsafe fn init() {
         DEFAULT_MAX_RESULT_WINDOW,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1079,10 +1014,7 @@ pub unsafe fn init() {
         DEFAULT_NESTED_FIELDS_LIMIT,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1091,10 +1023,7 @@ pub unsafe fn init() {
         DEFAULT_NESTED_OBJECTS_LIMIT,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1103,10 +1032,7 @@ pub unsafe fn init() {
         DEFAULT_TOTAL_FIELDS_LIMIT,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1116,10 +1042,7 @@ pub unsafe fn init() {
         DEFAULT_MAX_TERMS_COUNT,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1129,10 +1052,7 @@ pub unsafe fn init() {
         DEFAULT_MAX_ANALYZE_TOKEN_COUNT,
         1,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1140,10 +1060,7 @@ pub unsafe fn init() {
         "The Elasticsearch Alias to which this index should belong".as_pg_cstr(),
         std::ptr::null(),
         None,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1151,10 +1068,7 @@ pub unsafe fn init() {
         "The Elasticsearch index name, as a UUID".as_pg_cstr(),
         std::ptr::null(),
         None,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1162,10 +1076,7 @@ pub unsafe fn init() {
         "Elasticsearch index.translog.durability setting.  Defaults to 'request'".as_pg_cstr(),
         "request".as_pg_cstr(),
         Some(validate_translog_durability),
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_int_reloption(
         RELOPT_KIND_ZDB,
@@ -1174,20 +1085,14 @@ pub unsafe fn init() {
         DEFAULT_OPTIMIZE_AFTER,
         0,
         i32::MAX,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_bool_reloption(
         RELOPT_KIND_ZDB,
         "llapi".as_pg_cstr(),
         "Will this index be used by ZomboDB's low-level API?".as_pg_cstr(),
         false,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1195,10 +1100,7 @@ pub unsafe fn init() {
         "ZomboDB Index Linking options".as_pg_cstr(),
         std::ptr::null(),
         Some(validate_options),
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1206,40 +1108,28 @@ pub unsafe fn init() {
         "Combine fields into named lists during search".as_pg_cstr(),
         std::ptr::null(),
         Some(validate_field_lists),
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_bool_reloption(
         RELOPT_KIND_ZDB,
         "shadow".as_pg_cstr(),
         "Is this index a shadow index, and if so, to which one".as_pg_cstr(),
         false,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_bool_reloption(
         RELOPT_KIND_ZDB,
         "nested_object_date_detection".as_pg_cstr(),
         "Should ES try to automatically detect dates in nested objects".as_pg_cstr(),
         false,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_bool_reloption(
         RELOPT_KIND_ZDB,
         "nested_object_numeric_detection".as_pg_cstr(),
         "Should ES try to automatically detect numbers in nested objects".as_pg_cstr(),
         false,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_string_reloption(
         RELOPT_KIND_ZDB,
@@ -1247,20 +1137,14 @@ pub unsafe fn init() {
         "As a JSON mapping definition, how should dynamic text values in JSON be mapped?".as_pg_cstr(),
         r#"{ "type": "keyword", "ignore_above": 10922, "normalizer": "lowercase", "copy_to": "zdb_all" }"#.as_pg_cstr(),
         Some(validate_text_mapping),
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
     pg_sys::add_bool_reloption(
         RELOPT_KIND_ZDB,
         "include_source".as_pg_cstr(),
         "Should the source of the document be included in the _source field?".as_pg_cstr(),
         true,
-        #[cfg(any(feature = "pg13", feature = "pg14", feature = "pg15", feature = "pg16", feature = "pg17"))]
-        {
-            pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE
-        },
+        pg_sys::AccessExclusiveLock as pg_sys::LOCKMODE,
     );
 }
 

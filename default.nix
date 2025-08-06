@@ -6,9 +6,6 @@
 , hostPlatform
 , targetPlatform
 , postgresql
-, postgresql_10
-, postgresql_11
-, postgresql_12
 , postgresql_13
 , postgresql_14
 , postgresql_15
@@ -26,10 +23,7 @@
 
 let
   pgrxPostgresPkg =
-    if (pgrxPostgresVersion == 10) then postgresql_10
-    else if (pgrxPostgresVersion == 11) then postgresql_11
-    else if (pgrxPostgresVersion == 12) then postgresql_12
-    else if (pgrxPostgresVersion == 13) then postgresql_13
+    if (pgrxPostgresVersion == 13) then postgresql_13
     else if (pgrxPostgresVersion == 14) then postgresql_14
     else if (pgrxPostgresVersion == 15) then postgresql_15
     else if (pgrxPostgresVersion == 16) then postgresql_16
@@ -45,7 +39,7 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
 
   src = ./.;
 
-  inputsFrom = [ postgresql_10 postgresql_11 postgresql_12 postgresql_13 postgresql_14 postgresql_15 postgresql_16 postgresql_17 cargo-pgrx ];
+  inputsFrom = [ postgresql_13 postgresql_14 postgresql_15 postgresql_16 postgresql_17 cargo-pgrx ];
 
   LIBCLANG_PATH = "${llvmPackages.libclang}/lib";
   buildInputs = [
@@ -60,18 +54,9 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
   doCheck = true;
 
   preConfigure = ''
-    mkdir -p $out/.pgrx/{10,11,12,13,14,15,16,17}
+    mkdir -p $out/.pgrx/{13,14,15,16,17}
     export PGRX_HOME=$out/.pgrx
 
-    cp -r -L ${postgresql_10}/. $out/.pgrx/10/
-    chmod -R ugo+w $out/.pgrx/10
-    cp -r -L ${postgresql_10.lib}/lib/. $out/.pgrx/10/lib/
-    cp -r -L ${postgresql_11}/. $out/.pgrx/11/
-    chmod -R ugo+w $out/.pgrx/11
-    cp -r -L ${postgresql_11.lib}/lib/. $out/.pgrx/11/lib/
-    cp -r -L ${postgresql_12}/. $out/.pgrx/12/
-    chmod -R ugo+w $out/.pgrx/12
-    cp -r -L ${postgresql_12.lib}/lib/. $out/.pgrx/12/lib/
     cp -r -L ${postgresql_13}/. $out/.pgrx/13/
     chmod -R ugo+w $out/.pgrx/13
     cp -r -L ${postgresql_13.lib}/lib/. $out/.pgrx/13/lib/
@@ -89,7 +74,6 @@ naersk.lib."${targetPlatform.system}".buildPackage rec {
     cp -r -L ${postgresql_17.lib}/lib/. $out/.pgrx/17/lib/
 
     ${cargo-pgrx}/bin/cargo-pgrx pgrx init \
-      --pg12 $out/.pgrx/12/bin/pg_config \
       --pg13 $out/.pgrx/13/bin/pg_config
       --pg14 $out/.pgrx/14/bin/pg_config
       --pg15 $out/.pgrx/15/bin/pg_config
