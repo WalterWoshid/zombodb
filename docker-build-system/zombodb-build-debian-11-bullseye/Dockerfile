@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM debian:sid
+ARG PGVER
+FROM postgres:${PGVER}-bullseye
 
 LABEL maintainer="ZomboDB, LLC (zombodb@gmail.com)"
 
@@ -27,20 +28,26 @@ RUN useradd -m ${USER} --uid=${UID}
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y wget gnupg
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ sid-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
-RUN install -m 0755 -d /etc/apt/keyrings
-RUN wget --quiet -O /etc/apt/keyrings/pgdg.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
-RUN echo "deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt/ sid-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
-RUN apt-get update && apt-get install -y git curl
-RUN apt-get update && apt-get install -y gcc make build-essential libz-dev zlib1g-dev strace libssl-dev pkg-config
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    gcc \
+    make \
+    build-essential \
+    libz-dev \
+    zlib1g-dev \
+    strace \
+    libssl-dev \
+    pkg-config \
+    ruby \
+    ruby-dev \
+    rubygems
 
-RUN apt-get update && apt-get install -y postgresql-13 postgresql-server-dev-13
-RUN apt-get update && apt-get install -y postgresql-14 postgresql-server-dev-14
-RUN apt-get update && apt-get install -y postgresql-15 postgresql-server-dev-15
-RUN apt-get update && apt-get install -y postgresql-16 postgresql-server-dev-16
-RUN apt-get update && apt-get install -y postgresql-17 postgresql-server-dev-17
-RUN apt-get update && apt-get install -y ruby ruby-dev rubygems build-essential
+RUN rm -rf /var/lib/apt/lists/*
+
 RUN gem install dotenv -v 2.8.1
 RUN gem install --no-document fpm
 

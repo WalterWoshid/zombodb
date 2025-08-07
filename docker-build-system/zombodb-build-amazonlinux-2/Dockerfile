@@ -27,48 +27,61 @@ RUN useradd -m ${USER} --uid=${UID}
 
 RUN yum install -y yum-utils which procps psacct psmisc
 RUN yum makecache
-RUN yum install -y git gcc make rpm-build libffi-devel
-RUN yum install -y autoconf automake bison libtool readline-devel ruby sqlite-devel libyaml-devel
-RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-RUN yum install -y clang llvm5.0-devel openssl-devel
+
+RUN yum install -y \
+    git \
+    gcc \ make \
+    rpm-build \
+    libffi-devel \
+    autoconf \
+    automake \
+    bison \
+    libtool \
+    readline-devel \
+    ruby \
+    sqlite-devel \
+    libyaml-devel \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm \
+    clang \
+    llvm5.0-devel \
+    openssl-devel
 
 RUN echo $'\n\
 [pgdg13]\n\
-name=PostgreSQL 13 for RHEL/CentOS 7 - x86_64\n\
-baseurl=https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-7-x86_64\n\
+name=PostgreSQL 13 for RHEL/CentOS 8 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-8-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
 \n\
 [pgdg14]\n\
-name=PostgreSQL 14 for RHEL/CentOS 7 - x86_64\n\
-baseurl=https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-7-x86_64\n\
+name=PostgreSQL 14 for RHEL/CentOS 8 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-8-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
 [pgdg15]\n\
-name=PostgreSQL 15 for RHEL/CentOS 7 - x86_64\n\
-baseurl=https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-7-x86_64\n\
+name=PostgreSQL 15 for RHEL/CentOS 8 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-8-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
 [pgdg16]\n\
-name=PostgreSQL 16 for RHEL/CentOS 7 - x86_64\n\
-baseurl=https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-7-x86_64\n\
+name=PostgreSQL 16 for RHEL/CentOS 8 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-8-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
 [pgdg17]\n\
-name=PostgreSQL 17 for RHEL/CentOS 7 - x86_64\n\
-baseurl=https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-7-x86_64\n\
+name=PostgreSQL 17 for RHEL/CentOS 8 - x86_64\n\
+baseurl=https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-8-x86_64\n\
 enabled=1\n\
 gpgcheck=0\n\
 ' >> /etc/yum.repos.d/pgdg.repo
 
 
-RUN yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm
-RUN yum install -y llvm-toolset-7-clang
-RUN yum install -y postgresql13 postgresql13-server postgresql13-devel
-RUN yum install -y postgresql14 postgresql14-server postgresql14-devel
-RUN yum install -y postgresql15 postgresql15-server postgresql15-devel
-RUN yum install -y postgresql16 postgresql16-server postgresql16-devel
-RUN yum install -y postgresql17 postgresql17-server postgresql17-devel
+RUN yum install -y \
+    postgresql13 postgresql13-server postgresql13-devel \
+    postgresql14 postgresql14-server postgresql14-devel \
+    postgresql15 postgresql15-server postgresql15-devel \
+    postgresql16 postgresql16-server postgresql16-devel \
+    postgresql17 postgresql17-server postgresql17-devel
 
 USER ${UID}:${GID}
 WORKDIR /home/${USER}
@@ -77,9 +90,9 @@ WORKDIR /home/${USER}
 RUN curl -sSL https://rvm.io/mpapis.asc | gpg2 --import -
 RUN curl -sSL https://rvm.io/pkuczynski.asc | gpg2 --import -
 RUN curl -sSL https://get.rvm.io | bash -s stable
-RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && rvm install 2.3.3"
-RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && gem install --no-document rexml -v 3.2.5"
-RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && gem install --no-document dotenv -v 2.8.1"
+RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && rvm install 2.7"
+# TODO RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && gem install --no-document rexml -v 3.2.5"
+# TODO RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && gem install --no-document dotenv -v 2.8.1"
 RUN /bin/bash -l -c ". ~/.rvm/scripts/rvm && gem install --no-document fpm"
 
 

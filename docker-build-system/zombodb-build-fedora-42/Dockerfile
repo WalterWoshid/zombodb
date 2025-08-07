@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM fedora:39
+FROM fedora:42
 
 LABEL maintainer="ZomboDB, LLC (zombodb@gmail.com)"
 
@@ -25,18 +25,25 @@ ARG GID=1000
 RUN useradd -m ${USER} --uid=${UID}
 
 RUN dnf update -y
-RUN dnf install -y git
-RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-39-x86_64/pgdg-fedora-repo-latest.noarch.rpm
-RUN dnf install -y postgresql13-server postgresql13-devel
-RUN dnf install -y postgresql14-server postgresql14-devel
-RUN dnf install -y postgresql15-server postgresql15-devel
-RUN dnf install -y postgresql16-server postgresql16-devel
-RUN dnf install -y postgresql17-server postgresql17-devel
+RUN dnf install -y \
+    git \
+    https://download.postgresql.org/pub/repos/yum/reporpms/F-42-x86_64/pgdg-fedora-repo-latest.noarch.rpm \
+    postgresql13-server postgresql13-devel \
+    postgresql14-server postgresql14-devel \
+    postgresql15-server postgresql15-devel \
+    postgresql16-server postgresql16-devel \
+    postgresql17-server postgresql17-devel \
+    openssl-devel \
+    redhat-rpm-config \
+    ruby-devel \
+    gcc \
+    make \
+    rpm-build \
+    libffi-devel
+
 RUN dnf group install -y "Development Tools"
-RUN dnf install -y openssl-devel
-RUN dnf install -y redhat-rpm-config
-RUN dnf install -y ruby-devel gcc make rpm-build libffi-devel
-RUN dnf update -y
+# TODO RUN dnf update -y
+
 RUN gem install --no-document fpm
 
 
