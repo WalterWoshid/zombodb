@@ -13,10 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         os_image:
-          - "zombodb-build-debian-bookworm"
-          - "zombodb-build-debian-bullseye"
-          - "zombodb-build-debian-sid"
-          - "zombodb-build-alpine-3.19"
+          - "zombodb-build-ubuntu-24.04-noble"
+          - "zombodb-build-ubuntu-22.04-jammy"
+          - "zombodb-build-ubuntu-20.04-focal"
+          - "zombodb-build-debian-12-bookworm"
+          - "zombodb-build-debian-11-bullseye"
+          - "zombodb-build-alpine-3.22"
+          - "zombodb-build-alpine-3.21"
+          - "zombodb-build-fedora-41"
+          - "zombodb-build-fedora-42"
+          - "zombodb-build-fedora-43"
+          - "zombodb-build-amazonlinux-2"
         pg_version: [13, 14, 15, 16, 17]
 
     steps:
